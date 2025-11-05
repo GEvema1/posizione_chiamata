@@ -5,7 +5,6 @@
   <title>CRI Crescentino - Invio Posizione</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
   <style>
     :root {
       --cri-red: #D52B1E;
@@ -138,9 +137,8 @@
   <footer>© Croce Rossa Italiana - Comitato di Crescentino</footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbyUmBi3wztjf7TClP_kOSoLFN83bRrEGIP5QoZJv1x-Q_u7eVixXRD2RGPm3NQkxxkH/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzn-AtX9adE1p1KijOpJfIWIUoWRwkDKsOBTvV-yqA_m_Htxhf4DqXo57c2r6yKWDhs/exec";
     let map, marker;
 
     function traduciLuogo(nome) {
@@ -201,23 +199,36 @@
         }
 
         let numeroDaChiamare = "";
+
         try {
           const response = await fetch(scriptURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              latitude: lat, longitude: lon, accuracy: accuracy, phone: phone,
-              road: addressParts.road, house_number: addressParts.house_number,
-              city: addressParts.city, county: addressParts.county,
-              postcode: addressParts.postcode, country: addressParts.country
+              latitude: lat,
+              longitude: lon,
+              accuracy: accuracy,
+              phone: phone,
+              road: addressParts.road,
+              house_number: addressParts.house_number,
+              city: addressParts.city,
+              county: addressParts.county,
+              postcode: addressParts.postcode,
+              country: addressParts.country
             })
           });
 
-          const result = await response.json();
-          if (result && result.numero) numeroDaChiamare = result.numero;
+          const resultText = await response.text();
+          console.log("Risposta Apps Script:", resultText);
+          try {
+            const result = JSON.parse(resultText);
+            if (result && result.numero) numeroDaChiamare = result.numero;
+          } catch {
+            console.warn("Risposta non in JSON, salto parsing.");
+          }
 
         } catch (err) {
-          console.error("Errore Apps Script:", err);
+          console.error("Errore invio dati:", err);
         }
 
         document.querySelector(".loader").style.display = "none";
@@ -226,7 +237,8 @@
           ✅ Posizione inviata con successo!<br><br>
           📞 <strong>${phone}</strong><br>
           📍 ${fullAddress}<br>
-          🎯 Precisione: ±${Math.round(accuracy)} metri
+          🎯 Precisione: ±${Math.round(accuracy)} metri<br><br>
+          📞 Sto chiamando la Sala Operativa Locale...
         `;
 
         document.getElementById("map").style.display = "block";
@@ -242,11 +254,12 @@
           marker.setLatLng([lat, lon]).bindPopup(`${fullAddress}<br>±${Math.round(accuracy)} m`).openPopup();
         }
 
-        if (numeroDaChiamare) {
-          setTimeout(() => {
-            window.location.href = `tel:${numeroDaChiamare}`;
-          }, 1200);
-        }
+        // 📞 avvia la chiamata dopo breve pausa
+        setTimeout(() => {
+          window.location.href = numeroDaChiamare
+            ? `tel:${numeroDaChiamare}`
+            : `tel:3331234567`;
+        }, 2000);
 
       }, () => {
         document.querySelector(".loader").style.display = "none";
